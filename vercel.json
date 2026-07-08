@@ -1,12 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/search",
-      "destination": "/api/index"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/public/$1"
+      "destination": "/api/index"
     }
   ]
 }
