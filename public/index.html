@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventarisasi Buku Perpustakaan Badan Bahasa 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 min-h-screen">
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="mb-8 text-center md:text-left">
+            <h1 class="text-3xl font-bold text-blue-900">Sistem Inventarisasi Buku Perpustakaan</h1>
+            <p class="text-gray-600 mt-2">Sekretariat Badan Pengembangan dan Pembinaan Bahasa</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+            <form id="searchForm" class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label for="query" class="block text-sm font-medium text-gray-700 mb-2">Masukkan kata kunci pencarian:</label>
+                    <input type="text" id="query" name="query" autocomplete="off" required
+                        placeholder="NUP, Judul, Kode, ISBN, Barcode, dll..."
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" id="searchBtn"
+                        class="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition flex items-center justify-center gap-2">
+                        <span>🔍</span> Cari Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="statusMessage" class="hidden mb-6 p-4 rounded-lg font-medium text-sm"></div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden" id="resultContainer">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 border-b border-gray-200 text-gray-700 text-sm font-semibold uppercase tracking-wider">
+                            <th class="px-6 py-4">Judul Buku</th>
+                            <th class="px-6 py-4">Kodefikasi</th>
+                            <th class="px-6 py-4">Tahun Terbit</th>
+                            <th class="px-6 py-4">Kata yang Dicari</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTableBody" class="divide-y divide-gray-200 text-sm text-gray-600">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const queryInput = document.getElementById('query').value.trim();
+            const searchBtn = document.getElementById('searchBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            const resultContainer = document.getElementById('resultContainer');
+            const tableBody = document.getElementById('resultTableBody');
+
+            if (!queryInput) return;
+
+            // Loading state
+            searchBtn.disabled = true;
+            searchBtn.innerText = "Mencari...";
+            statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-blue-50 text-blue-700 block";
+            statusMessage.innerText = `Sedang mencari data untuk kata kunci "${queryInput}"...`;
+            resultContainer.classList.add('hidden');
+            tableBody.innerHTML = "";
+
+            try {
+                // Memanggil endpoint API FastAPI (/search?q=...) secara relatif sesuai domain Vercel
+                const response = await fetch(`/search?q=${encodeURIComponent(queryInput)}`);
+                const result = await response.json();
+
+                searchBtn.disabled = false;
+                searchBtn.innerText = "🔍 Cari Data";
+
+                if (result.status === "success" && result.total_results > 0) {
+                    statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-green-50 text-green-700 block";
+                    statusMessage.innerText = `🎉 Berhasil! Ditemukan ${result.total_results} baris data.`;
+
+                    // Lakukan perulangan untuk memasukkan data ke tabel
+                    result.data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.className = "hover:bg-gray-50 transition";
+                        row.innerHTML = `
+                            <td class="px-6 py-4 font-medium text-gray-900">${item.Judul || '-'}</td>
+                            <td class="px-6 py-4">${item.Kodefikasi || '-'}</td>
+                            <td class="px-6 py-4">${item['Tahun Terbit'] || '-'}</td>
+                            <td class="px-6 py-4 bg-yellow-50 font-mono text-xs text-amber-800">${item['Kata yang Dicari'] || '-'}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-red-50 text-red-700 block";
+                    statusMessage.innerText = "❌ Data tidak ditemukan di kolom manapun pada sheet 'slims'.";
+                }
+
+            } catch (error) {
+                searchBtn.disabled = false;
+                searchBtn.innerText = "🔍 Cari Data";
+                statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-red-50 text-red-700 block";
+                statusMessage.innerText = `🚨 Terjadi kesalahan koneksi sistem: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
