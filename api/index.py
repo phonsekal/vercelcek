@@ -3,11 +3,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import numpy as np
+import os
 
 app = FastAPI(
     title="Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
-    description="Backend API dan Frontend Terintegrasi untuk Pencarian BMN Buku",
-    version="2026.2"
+    description="Backend API dan Frontend Terintegrasi Berbasis File CSV Lokal",
+    version="2026.3"
 )
 
 # Konfigurasi CORS agar API aman dan bisa diakses secara fleksibel
@@ -19,19 +20,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# URL Google Sheet Baru yang diarahkan khusus untuk mengekspor tab/sheet "slims"
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/17QsetCX0AX_u4w4fQbCxH6yOXXuinAfeVfe9acvkHiE/export?format=csv&sheet=slims"
-
-def fetch_data_from_sheets():
-    """Fungsi helper untuk menarik data terbaru secara real-time dari Google Sheets"""
+def fetch_data_from_csv():
+    """Fungsi untuk membaca data dari file lokal databmnbuku.csv"""
+    # Menentukan path file CSV secara dinamis (mencari ke root folder jika dijalankan di Vercel)
+    csv_path = "databmnbuku.csv"
+    if not os.path.exists(csv_path):
+        # Fallback jika dijalankan di dalam subfolder api/
+        csv_path = os.path.join(os.path.dirname(__file__), "..", "databmnbuku.csv")
+        
     try:
-        df = pd.read_csv(SHEET_CSV_URL, dtype=str, on_bad_lines='skip', encoding='utf-8')
+        if not os.path.exists(csv_path):
+            raise HTTPException(status_code=404, detail="File 'databmnbuku.csv' tidak ditemukan di server.")
+            
+        # Membaca data lokal dengan separator ';' sesuai dengan format file asli Anda
+        df = pd.read_csv(csv_path, sep=';', dtype=str, on_bad_lines='skip', encoding='utf-8')
         df.columns = df.columns.str.strip()
         df = df.loc[:, ~df.columns.str.contains('^Unnamed:|^\s*$', case=False, na=True)]
         df = df.fillna("")
         return df
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal memuat data dari Google Sheets: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gagal membaca file CSV: {str(e)}")
 
 # ==========================================
 # 1. ENDPOINT FRONTEND (HALAMAN UTAMA WEB)
@@ -104,7 +114,6 @@ def home():
 
                 if (!queryInput) return;
 
-                // Set keadaan loading
                 searchBtn.disabled = true;
                 searchBtn.innerText = "Mencari...";
                 statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-blue-50 text-blue-700 block";
@@ -113,7 +122,6 @@ def home():
                 tableBody.innerHTML = "";
 
                 try {
-                    // Panggil API backend relatif /search
                     const response = await fetch(`/search?q=${encodeURIComponent(queryInput)}`);
                     const result = await response.json();
 
@@ -124,7 +132,6 @@ def home():
                         statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-green-50 text-green-700 block";
                         statusMessage.innerText = `🎉 Berhasil! Ditemukan ${result.total_results} baris data.`;
 
-                        // Render data ke dalam tabel HTML
                         result.data.forEach(item => {
                             const row = document.createElement('tr');
                             row.className = "hover:bg-gray-50 transition";
@@ -140,7 +147,7 @@ def home():
                         resultContainer.classList.remove('hidden');
                     } else {
                         statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-red-50 text-red-700 block";
-                        statusMessage.innerText = "❌ Data tidak ditemukan di kolom manapun pada sheet 'slims'.";
+                        statusMessage.innerText = "❌ Data tidak ditemukan di kolom manapun pada file CSV.";
                     }
 
                 } catch (error) {
@@ -161,13 +168,13 @@ def home():
 # ==========================================
 @app.get("/search")
 def search_books(q: str = Query(..., description="Kata kunci pencarian")):
-    df = fetch_data_from_sheets()
+    df = fetch_data_from_csv()
     
     query_clean = q.replace(" ", "").replace(".", "").lower()
     if not query_clean:
         raise HTTPException(status_code=400, detail="Kata kunci tidak boleh kosong.")
     
-    # Proses Operasi Vektor Matriks Pandas (Sangat Cepat)
+    # Pencarian Vektor Matriks Pandas (Sangat Cepat)
     df_cleaned = df.astype(str).apply(lambda s: s.str.replace(" ", "", regex=False).str.replace(".", "", regex=False).str.lower())
     mask_match = df_cleaned.apply(lambda s: s.str.contains(query_clean, na=False))
     rows_matched = mask_match.any(axis=1)
@@ -186,7 +193,7 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
         hasil_filter['Judul'] = hasil_filter[kolom_judul_asli] if kolom_judul_asli else "Kolom Judul Tidak Terdeteksi"
 
         # --- PROSES STANDARISASI KOLOM KODEFIKASI ---
-        kolom_kode_asli = next((c for c in hasil_filter.columns if c.lower() in ['klasifikasi', 'kode', 'kodefikasi'] or 'klasifikasi' in c.lower() or 'kode' in c.lower()), None)
+        kolom_kode_asli = next((c for c in hasil_filter.columns if c.lower() in ['klasifikasi', 'kode', 'kodefikasi', 'kode1'] or 'klasifikasi' in c.lower() or 'kode' in c.lower()), None)
         hasil_filter['Kodefikasi'] = hasil_filter[kolom_kode_asli] if kolom_kode_asli else "-"
 
         # --- PROSES STANDARISASI KOLOM TAHUN TERBIT ---
