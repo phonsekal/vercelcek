@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 app = FastAPI(
-    title="Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
+    title="KarsaPustaka — Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
     version="2026.11"
 )
 
@@ -137,7 +137,7 @@ def home():
         <div class="sticky top-0 z-50 border-b border-gray-100 bg-white/90 dark:border-gray-900 dark:bg-gray-950/90 backdrop-blur-md w-full transition-colors">
             <div class="custom-nav-container">
                 <header class="flex items-center w-full justify-between py-10">
-                    <a class="break-words" aria-label="dedesaputra Blog" href="/">
+                    <a class="break-words" aria-label="KarsaPustaka" href="/">
                         <div class="flex items-center justify-between">
                             <div class="mr-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="53.87" height="43.61" viewBox="344.564 330.278 111.737 91.218">
@@ -188,7 +188,7 @@ def home():
         
         <main>
             <div class="mb-12 border-b border-gray-100 dark:border-gray-900 pb-6">
-                <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl">Inventarisasi Buku</h1>
+                <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl">Sistem Tata Kelola Pustaka</h1>
                 <p class="text-base text-gray-500 dark:text-gray-400 mt-2">Sekretariat Badan Pengembangan dan Pembinaan Bahasa</p>
             </div>
 
@@ -304,12 +304,12 @@ def home():
                 <div class="mb-2 flex space-x-2 text-sm text-gray-500 dark:text-gray-400">
                     <div>Dede Saputra</div>
                     <div> • </div>
-                    <div>© 2025</div>
+                    <div>© 2026</div>
                     <div> • </div>
-                    <a class="break-words" href="/">Dede Saputra Blog</a>
+                    <a class="break-words" href="https://blog.dedesaputra.com">Dede Saputra Blog</a>
                 </div>
                 <div class="mb-8 text-sm text-gray-500 dark:text-gray-400">
-                    <a class="break-words" target="_blank" rel="noopener noreferrer" href="https://dedesaputra">Sudung Pak Dede</a>
+                    <a class="break-words" target="_blank" rel="noopener noreferrer" href="https://dedesaputra.com">Pasang iklan di sini</a>
                 </div>
             </div>
         </footer>
