@@ -7,7 +7,7 @@ import os
 
 app = FastAPI(
     title="Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
-    version="2026.8"
+    version="2026.9"
 )
 
 app.add_middleware(
@@ -54,7 +54,7 @@ async def favicon():
     return HTTPException(status_code=404, detail="Favicon tidak ditemukan")
 
 # ========================================================
-# FRONTEND: PRESTINE LIGHT THEME (INSPIRASI DESAIN BLOG)
+# FRONTEND WITH REQUESTED CUSTOM HEADER
 # ========================================================
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -66,9 +66,23 @@ def home():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Inventarisasi Buku Perpustakaan Badan Bahasa 2026</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-        
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            // Menambahkan warna tema khusus untuk mendefinisikan utilitas kelas text-primary/hover:text-primary
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: {
+                                400: '#22d3ee',
+                                500: '#06b6d4',
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
         <style>
             * {
                 margin: 0;
@@ -86,57 +100,29 @@ def home():
                 -webkit-font-smoothing: antialiased;
             }
             
-            /* Custom Scrollbar Minimalis */
             ::-webkit-scrollbar { width: 5px; height: 5px; }
             ::-webkit-scrollbar-track { background: #ffffff; }
             ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
             ::-webkit-scrollbar-thumb:hover { background: #cbd5e0; }
 
-            header {
-                border-bottom: 1px solid #efefef;
-                background: #ffffff;
-            }
-            nav {
+            .custom-nav-container {
                 max-width: 1100px;
                 margin: 0 auto;
-                display: flex;
-                align-items: center;
-                padding: 1.5rem 2rem;
                 width: 100%;
+                padding: 0 2rem;
             }
-            .logo {
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: #111111;
-                text-decoration: none;
-                letter-spacing: -0.03em;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-            .nav-links a {
-                text-decoration: none;
-                color: #666666;
-                padding: 0.5rem 0.75rem;
-                transition: color 0.2s;
-                font-size: 0.875rem;
-                font-weight: 500;
-                margin-left: auto;
-            }
-            .nav-links a:hover { color: #111111; }
             
             main {
                 flex: 1;
                 width: 100%;
                 max-width: 1100px;
                 margin: 0 auto;
-                padding: 3.5rem 2rem;
+                padding: 2.5rem 2rem;
             }
             
-            /* Section Judul ala Gambar */
             .hero { margin-bottom: 3rem; border-bottom: 1px solid #efefef; padding-bottom: 1.5rem; }
             .hero h1 {
-                font-size: 2.75rem;
+                font-size: 2.5rem;
                 font-weight: 800;
                 color: #111111;
                 letter-spacing: -0.04em;
@@ -144,10 +130,6 @@ def home():
             }
             .subtitle { font-size: 1.05rem; color: #666666; font-weight: 400; }
 
-            /* Kotak Pencarian yang Sangat Bersih */
-            .search-box {
-                margin-bottom: 2rem;
-            }
             .form-group label {
                 font-size: 0.75rem;
                 color: #111111;
@@ -184,7 +166,6 @@ def home():
             }
             .btn-search:hover { opacity: 0.9; }
 
-            /* Status Text Log Berjalan */
             .status-badge {
                 display: flex;
                 align-items: center;
@@ -198,7 +179,6 @@ def home():
             .status-dot.loading { background-color: #f59e0b; animation: pulse 1s infinite; }
             .status-dot.error { background-color: #ef4444; }
 
-            /* Konstruksi Tabel Minimalis Tanpa Garis Luar Tebal */
             .table-container {
                 width: 100%;
                 margin-top: 1rem;
@@ -218,12 +198,8 @@ def home():
             tr:hover td { color: #111111; }
             
             .font-mono-style { font-family: monospace; font-size: 0.8rem; color: #888888; }
-            .badge-kode {
-                color: #666666;
-                font-size: 0.8rem;
-            }
+            .badge-kode { color: #666666; font-size: 0.8rem; }
             
-            /* Tombol Kirim Minimalis */
             .btn-action {
                 background: none;
                 border: none;
@@ -248,6 +224,7 @@ def home():
             @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
             @media (max-width: 768px) {
+                .custom-nav-container { padding: 0 1rem; }
                 main { padding: 2rem 1rem; }
                 .hero h1 { font-size: 2rem; }
                 .input-wrapper { flex-direction: column; }
@@ -257,12 +234,63 @@ def home():
         </style>
     </head>
     <body>
-        <header>
-            <nav>
-                <a href="/" class="logo">Badan Bahasa + BMN</a>
-                <div class="nav-links"><a href="/docs">API Docs</a></div>
-            </nav>
-        </header>
+        <div class="border-b border-gray-100 bg-white dark:bg-gray-950 w-full">
+            <div class="custom-nav-container">
+                <header class="flex items-center w-full justify-between py-10">
+                    <a class="break-words" aria-label="dedesaputra Blog" href="/">
+                        <div class="flex items-center justify-between" bis_skin_checked="1">
+                            <div class="mr-3" bis_skin_checked="1">
+                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="53.87" height="43.61" viewBox="344.564 330.278 111.737 91.218">
+                                    <defs>
+                                        <linearGradient id="logo_svg__b" x1="420.97" x2="420.97" y1="331.28" y2="418.5" gradientUnits="userSpaceOnUse">
+                                            <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1"></stop>
+                                            <stop offset="100%" style="stop-color:#67e8f9;stop-opacity:1"></stop>
+                                        </linearGradient>
+                                        <linearGradient id="logo_svg__d" x1="377.89" x2="377.89" y1="331.28" y2="418.5" gradientUnits="userSpaceOnUse">
+                                            <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1"></stop>
+                                            <stop offset="100%" style="stop-color:#67e8f9;stop-opacity:1"></stop>
+                                        </linearGradient>
+                                        <path id="logo_svg__a" d="M453.3 331.28v28.57l-64.66 58.65v-30.08z"></path>
+                                        <path id="logo_svg__c" d="M410.23 331.28v28.57l-64.67 58.65v-30.08z"></path>
+                                    </defs>
+                                    <use xlink:href="#logo_svg__a" fill="url(#logo_svg__b)"></use>
+                                    <use xlink:href="#logo_svg__c" fill="url(#logo_svg__d)"></use>
+                                </svg>
+                            </div>
+                            <div class="hidden h-6 text-2xl font-semibold sm:block" bis_skin_checked="1">dedesaputra Blog</div>
+                        </div>
+                    </a>
+                    <div class="flex items-center space-x-4 leading-5 sm:-mr-6 sm:space-x-6" bis_skin_checked="1">
+                        <div class="no-scrollbar hidden max-w-40 items-center gap-x-4 overflow-x-auto sm:flex md:max-w-72 lg:max-w-96" bis_skin_checked="1">
+                            <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="/blog">Blog</a>
+                            <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="/projects">Projects</a>
+                            <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="/about">About</a>
+                        </div>
+                        <button aria-label="Search">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hover:text-primary-500 dark:hover:text-primary-400 h-6 w-6 text-gray-900 dark:text-gray-100">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path>
+                            </svg>
+                        </button>
+                        <div class="flex items-center" bis_skin_checked="1">
+                            <div class="relative inline-block text-left" data-headlessui-state="" bis_skin_checked="1">
+                                <div class="hover:text-primary-500 dark:hover:text-primary-400 flex items-center justify-center" bis_skin_checked="1">
+                                    <button aria-label="Theme switcher" id="headlessui-menu-button-«Rtpkqlb»" type="button" aria-haspopup="menu" aria-expanded="false" data-headlessui-state="">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="group:hover:text-gray-100 h-6 w-6">
+                                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button aria-label="Toggle Menu" class="sm:hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="hover:text-primary-500 dark:hover:text-primary-400 h-8 w-8 text-gray-900 dark:text-gray-100">
+                                <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </header>
+            </div>
+        </div>
         
         <main>
             <div class="hero">
