@@ -7,7 +7,7 @@ import os
 
 app = FastAPI(
     title="Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
-    version="2026.5"
+    version="2026.6"
 )
 
 app.add_middleware(
@@ -42,25 +42,20 @@ def load_initial_data():
     except:
         return None
 
-# Inisialisasi data di awal
 load_initial_data()
 
-# ==========================================
-# 1. ROUTE KHUSUS UNTUK FAVICON
-# ==========================================
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     favicon_path = "favicon.ico"
     if not os.path.exists(favicon_path):
         favicon_path = os.path.join(os.path.dirname(__file__), "..", "favicon.ico")
-    
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path)
     return HTTPException(status_code=404, detail="Favicon tidak ditemukan")
 
-# ==========================================
-# 2. FRONTEND DENGAN DESAIN VERCEL DARK MODE
-# ==========================================
+# ========================================================
+# FRONTEND INTERAKTIF & ULTRA MODERN (VERCEL DESIGN v2)
+# ========================================================
 @app.get("/", response_class=HTMLResponse)
 def home():
     html_content = """
@@ -78,16 +73,28 @@ def home():
                 box-sizing: border-box;
             }
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-                background-color: #000000;
-                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                background-color: #050505;
+                color: #fafafa;
                 line-height: 1.6;
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
             }
+            
+            /* Custom Thin Scrollbar */
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: #0a0a0a; }
+            ::-webkit-scrollbar-thumb { background: #222222; border-radius: 3px; }
+            ::-webkit-scrollbar-thumb:hover { background: #333333; }
+
             header {
-                border-bottom: 1px solid #333333;
+                border-bottom: 1px solid #1f1f1f;
+                background: rgba(5, 5, 5, 0.8);
+                backdrop-filter: blur(8px);
+                position: sticky;
+                top: 0;
+                z-index: 50;
             }
             nav {
                 max-width: 1200px;
@@ -98,169 +105,153 @@ def home():
                 width: 100%;
             }
             .logo {
-                font-size: 1.15rem;
+                font-size: 1.1rem;
                 font-weight: 600;
                 color: #ffffff;
                 text-decoration: none;
-                letter-spacing: -0.02em;
-            }
-            .nav-links {
                 display: flex;
-                gap: 1.5rem;
-                margin-left: auto;
+                align-items: center;
+                gap: 0.5rem;
             }
             .nav-links a {
                 text-decoration: none;
                 color: #888888;
                 padding: 0.5rem 1rem;
                 border-radius: 6px;
-                transition: all 0.2s ease;
+                transition: all 0.2s;
                 font-size: 0.875rem;
                 font-weight: 500;
+                margin-left: auto;
             }
-            .nav-links a:hover {
-                color: #ffffff;
-                background-color: #111111;
-            }
+            .nav-links a:hover { color: #ffffff; background-color: #111111; }
+            
             main {
                 flex: 1;
                 width: 100%;
                 max-width: 1200px;
                 margin: 0 auto;
-                padding: 3rem 2rem;
+                padding: 4rem 2rem;
             }
+            
+            .hero { text-align: center; margin-bottom: 3rem; }
             .hero h1 {
-                font-size: 2.5rem;
-                font-weight: 700;
-                margin-bottom: 0.5rem;
-                letter-spacing: -0.03em;
-                background: linear-gradient(to right, #ffffff, #888888);
+                font-size: 3rem;
+                font-weight: 800;
+                margin-bottom: 0.75rem;
+                letter-spacing: -0.04em;
+                background: linear-gradient(180deg, #ffffff 0%, #a1a1a1 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                background-clip: text;
             }
-            .subtitle {
-                font-size: 1.05rem;
-                color: #888888;
-                margin-bottom: 2.5rem;
-            }
+            .subtitle { font-size: 1.1rem; color: #888888; font-weight: 400; }
+
+            /* Search Panel Premium Glow */
             .search-box {
-                background-color: #0a0a0a;
-                border: 1px solid #333333;
-                border-radius: 8px;
-                padding: 1.5rem;
+                background: #0a0a0a;
+                border: 1px solid #1f1f1f;
+                border-radius: 12px;
+                padding: 2rem;
                 margin-bottom: 2rem;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+                transition: border-color 0.3s, box-shadow 0.3s;
             }
-            .form-group {
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
-                width: 100%;
+            .search-box:focus-within {
+                border-color: #333333;
+                box-shadow: 0 0 25px rgba(0, 112, 243, 0.1);
             }
             .form-group label {
-                font-size: 0.875rem;
-                color: #888888;
-                font-weight: 500;
+                font-size: 0.75rem;
+                color: #666666;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                display: block;
+                margin-bottom: 0.75rem;
             }
-            .input-wrapper {
-                display: flex;
-                gap: 1rem;
-            }
+            .input-wrapper { display: flex; gap: 1rem; }
             .search-box input {
                 flex: 1;
                 background-color: #000000;
-                border: 1px solid #333333;
-                border-radius: 6px;
-                padding: 0.75rem 1rem;
+                border: 1px solid #1f1f1f;
+                border-radius: 8px;
+                padding: 0.85rem 1.25rem;
                 color: #ffffff;
-                font-size: 0.95rem;
+                font-size: 1rem;
                 outline: none;
-                transition: border-color 0.2s;
+                transition: all 0.2s;
             }
             .search-box input:focus {
                 border-color: #0070f3;
+                background-color: #030303;
             }
             .btn-search {
-                background-color: #ffffff;
+                background-color: #fafafa;
                 color: #000000;
                 border: none;
-                padding: 0.75rem 1.5rem;
-                font-size: 0.925rem;
+                padding: 0.85rem 2rem;
+                font-size: 0.95rem;
                 font-weight: 600;
-                border-radius: 6px;
+                border-radius: 8px;
                 cursor: pointer;
-                transition: background-color 0.2s;
-                white-space: nowrap;
+                transition: all 0.2s;
             }
-            .btn-search:hover {
-                background-color: #cccccc;
-            }
+            .btn-search:hover { background-color: #e1e1e1; transform: translateY(-1px); }
+            .btn-search:active { transform: translateY(0); }
+
+            /* Status Badge */
             .status-badge {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.5rem;
-                background-color: #111111;
-                border: 1px solid #333333;
-                color: #888888;
-                padding: 0.5rem 1rem;
-                border-radius: 6px;
+                gap: 0.6rem;
+                background-color: #0a0a0a;
+                border: 1px solid #1f1f1f;
+                color: #a1a1a1;
+                padding: 0.6rem 1.2rem;
+                border-radius: 8px;
                 font-size: 0.875rem;
-                margin-bottom: 2rem;
+                margin-bottom: 1.5rem;
                 width: 100%;
+                animation: fadeIn 0.3s ease;
             }
-            .status-dot {
-                width: 8px;
-                height: 8px;
-                background-color: #00ff88;
-                border-radius: 50%;
-            }
-            .status-dot.loading { background-color: #ffaa00; }
-            .status-dot.error { background-color: #ff3333; }
-            
+            .status-dot { width: 8px; height: 8px; background-color: #00ff88; border-radius: 50%; box-shadow: 0 0 8px #00ff88; }
+            .status-dot.loading { background-color: #ffaa00; box-shadow: 0 0 8px #ffaa00; animation: pulse 1s infinite; }
+            .status-dot.error { background-color: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+            /* Table Container Smooth Fade-In */
             .table-container {
                 background-color: #0a0a0a;
-                border: 1px solid #333333;
-                border-radius: 8px;
+                border: 1px solid #1f1f1f;
+                border-radius: 12px;
                 overflow: hidden;
                 width: 100%;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                text-align: left;
-                font-size: 0.9rem;
-            }
+            table { width: 100%; border-collapse: collapse; text-align: left; }
             th {
-                background-color: #111111;
-                border-bottom: 1px solid #333333;
-                color: #888888;
+                background-color: #0f0f0f;
+                border-bottom: 1px solid #1f1f1f;
+                color: #666666;
                 font-weight: 600;
-                padding: 1rem 1.5rem;
+                padding: 1.1rem 1.5rem;
                 text-transform: uppercase;
-                font-size: 0.75rem;
-                letter-spacing: 0.05em;
+                font-size: 0.725rem;
+                letter-spacing: 0.08em;
             }
-            td {
-                padding: 1rem 1.5rem;
-                border-bottom: 1px solid #222222;
-                color: #cccccc;
-            }
-            tr:hover td {
-                background-color: #141414;
-            }
-            .font-mono-style {
-                font-family: 'SF Mono', Monaco, monospace;
-                font-size: 0.8rem;
-                color: #888888;
-            }
+            td { padding: 1.1rem 1.5rem; border-bottom: 1px solid #141414; color: #a1a1a1; font-size: 0.925rem; transition: background-color 0.2s; }
+            tr:last-child td { border-bottom: none; }
+            tr:hover td { background-color: #121212; color: #ffffff; }
+            
+            .font-mono-style { font-family: monospace; font-size: 0.85rem; color: #666666; }
             .badge-kode {
-                background-color: #222222;
-                color: #ffffff;
+                background-color: #141414;
+                color: #eaeaea;
                 padding: 0.25rem 0.5rem;
-                border-radius: 4px;
-                font-size: 0.8rem;
-                border: 1px solid #333333;
+                border-radius: 6px;
+                font-size: 0.775rem;
+                border: 1px solid #1f1f1f;
             }
+            
+            /* Interactive Button Style */
             .btn-action {
                 display: inline-flex;
                 align-items: center;
@@ -268,57 +259,64 @@ def home():
                 text-decoration: none;
                 font-size: 0.8rem;
                 font-weight: 500;
-                padding: 0.4rem 0.8rem;
-                background-color: #222222;
+                padding: 0.5rem 1rem;
+                background-color: #161616;
                 border-radius: 6px;
-                border: 1px solid #333333;
+                border: 1px solid #222222;
                 cursor: pointer;
-                transition: all 0.2s ease;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             }
             .btn-action:hover {
-                background-color: #333333;
-                border-color: #555555;
+                background-color: #ffffff;
+                color: #000000;
+                border-color: #ffffff;
+                transform: scale(1.03);
             }
             .btn-success-style {
                 background-color: #0070f3 !important;
                 border-color: #0070f3 !important;
                 color: #ffffff !important;
+                transform: scale(1) !important;
                 cursor: default;
+                box-shadow: 0 0 15px rgba(0, 112, 243, 0.3);
             }
+            
             .hidden { display: none; }
 
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
             @media (max-width: 768px) {
-                nav { padding: 1rem; flex-direction: column; gap: 1rem; }
-                .nav-links { margin-left: 0; }
                 main { padding: 2rem 1rem; }
+                .hero h1 { font-size: 2rem; }
                 .input-wrapper { flex-direction: column; }
                 .btn-search { width: 100%; }
-                th, td { padding: 0.75rem 1rem; }
+                th, td { padding: 0.85rem 1rem; }
             }
         </style>
     </head>
     <body>
         <header>
             <nav>
-                <a href="/" class="logo">Badan Bahasa + BMN</a>
-                <div class="nav-links">
-                    <a href="/docs">API Docs</a>
-                </div>
+                <a href="/" class="logo">
+                    <svg width="18" height="18" viewBox="0 0 76 65" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z" fill="#ffffff"/></svg>
+                    <span>Badan Pengembangan dan Pembinaan Bahasa</span>
+                </a>
             </nav>
         </header>
         
         <main>
             <div class="hero">
-                <h1>Inventarisasi Buku Perpustakaan</h1>
+                <h1>Inventarisasi Buku</h1>
                 <p class="subtitle">Sekretariat Badan Pengembangan dan Pembinaan Bahasa</p>
             </div>
 
             <div class="search-box">
                 <form id="searchForm">
                     <div class="form-group">
-                        <label for="query">PENCARIAN DATA (MERK, KODE1, KODE2, KODE3)</label>
+                        <label for="query">PENCARIAN DATA INSTAN (MERK / KODE KELOMPOK)</label>
                         <div class="input-wrapper">
-                            <input type="text" id="query" name="query" autocomplete="off" required placeholder="Masukkan kata kunci di sini...">
+                            <input type="text" id="query" name="query" autocomplete="off" required placeholder="Mulai mengetik untuk mencari...">
                             <button type="submit" id="searchBtn" class="btn-search">Cari Data</button>
                         </div>
                     </div>
@@ -327,41 +325,39 @@ def home():
 
             <div id="statusBadge" class="hidden status-badge">
                 <div id="statusDot" class="status-dot"></div>
-                <span id="statusText">Sistem Siap</span>
+                <span id="statusText">Sistem Bersiap</span>
             </div>
 
             <div class="table-container hidden" id="resultContainer">
                 <table>
                     <thead>
                         <tr>
-                            <th>NUP</th>
-                            <th>Judul Buku</th>
-                            <th>Kodefikasi</th>
-                            <th style="text-align: center;">Aksi</th>
+                            <th style="width: 15%;">NUP</th>
+                            <th style="width: 55%;">Judul Buku</th>
+                            <th style="width: 15%;">Kodefikasi</th>
+                            <th style="width: 15%; text-align: center;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="resultTableBody">
-                        </tbody>
+                    <tbody id="resultTableBody"></tbody>
                 </table>
             </div>
         </main>
 
         <script>
             const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyVCt37xvsX_oiNsw-AX99RW2SC4gU0K0qOMJvcY0909zqGMC1J1eaUbZOMrRI1oOXh/exec";
+            let debounceTimer;
 
             async function eksekusiKirim(buttonElement, nup, judul) {
                 buttonElement.disabled = true;
                 buttonElement.innerText = "Mengirim...";
-                buttonElement.style.opacity = "0.6";
-
-                const payload = { nup: nup, merk: judul };
+                buttonElement.style.opacity = "0.7";
 
                 try {
                     await fetch(WEB_APP_URL, {
                         method: 'POST',
                         mode: 'no-cors', 
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({ nup: nup, merk: judul })
                     });
                     
                     buttonElement.innerText = "✓ Berhasil";
@@ -374,40 +370,34 @@ def home():
                 }
             }
 
-            document.getElementById('searchForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
+            // Fungsi Engine Inti untuk Menembak API Tanpa Reload Halaman
+            async function jalankanPencarian() {
                 const queryInput = document.getElementById('query').value.trim();
-                const searchBtn = document.getElementById('searchBtn');
                 const statusBadge = document.getElementById('statusBadge');
                 const statusDot = document.getElementById('statusDot');
                 const statusText = document.getElementById('statusText');
                 const resultContainer = document.getElementById('resultContainer');
                 const tableBody = document.getElementById('resultTableBody');
 
-                if (!queryInput) return;
+                if (!queryInput || queryInput.length < 2) {
+                    resultContainer.classList.add('hidden');
+                    statusBadge.classList.add('hidden');
+                    return;
+                }
 
-                searchBtn.disabled = true;
-                searchBtn.innerText = "Memproses...";
-                
                 statusBadge.classList.remove('hidden');
                 statusDot.className = "status-dot loading";
-                statusText.innerText = `Sedang mencari "${queryInput}"...`;
-                
-                resultContainer.classList.add('hidden');
-                tableBody.innerHTML = "";
+                statusText.innerText = "Sedang mencocokkan matriks data...";
 
                 try {
                     const response = await fetch(`/search?q=${encodeURIComponent(queryInput)}`);
                     const result = await response.json();
 
-                    searchBtn.disabled = false;
-                    searchBtn.innerText = "Cari Data";
-
                     if (result.status === "success" && result.total_results > 0) {
                         statusDot.className = "status-dot";
-                        statusText.innerText = `Berhasil memuat ${result.total_results} data buku.`;
-
+                        statusText.innerText = `Menampilkan ${result.total_results} buku yang cocok.`;
+                        
+                        tableBody.innerHTML = "";
                         result.data.forEach(item => {
                             const row = document.createElement('tr');
                             const safeNUP = (item.NUP || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -419,24 +409,36 @@ def home():
                                 <td><span class="badge-kode">${item.Kodefikasi || '-'}</span></td>
                                 <td style="text-align: center;">
                                     <button onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="btn-action">
-                                        Kirim Data →
+                                        Kirim Data
                                     </button>
                                 </td>
                             `;
                             tableBody.appendChild(row);
                         });
-
                         resultContainer.classList.remove('hidden');
                     } else {
                         statusDot.className = "status-dot error";
-                        statusText.innerText = "Data tidak ditemukan pada kolom Merk atau Kode1/2/3.";
+                        statusText.innerText = "Tidak ada kecocokan data.";
+                        resultContainer.classList.add('hidden');
                     }
                 } catch (error) {
-                    searchBtn.disabled = false;
-                    searchBtn.innerText = "Cari Data";
                     statusDot.className = "status-dot error";
-                    statusText.innerText = `Terjadi kesalahan: ${error.message}`;
+                    statusText.innerText = "Koneksi terputus.";
                 }
+            }
+
+            // FITUR INTERAKTIF 1: Pencarian Otomatis Saat Mengetik (Debounce)
+            document.getElementById('query').addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                // Menunggu 350ms setelah pengguna berhenti mengetik untuk mencegah overload request API
+                debounceTimer = setTimeout(jalankanPencarian, 350);
+            });
+
+            // FITUR INTERAKTIF 2: Tombol Manual Enter tetap dipertahankan
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                jalankanPencarian();
             });
         </script>
     </body>
@@ -467,6 +469,11 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
     
     if rows_matched.any():
         hasil_filter = df[rows_matched].copy()
+        
+        # Ambil maksimal 50 baris pertama untuk optimasi kecepatan render browser
+        if len(hasil_filter) > 50:
+            hasil_filter = hasil_filter.head(50)
+            
         hasil_filter['Judul Buku'] = hasil_filter['Merk'] if 'Merk' in hasil_filter.columns else "-"
         
         if 'NUP' not in hasil_filter.columns:
