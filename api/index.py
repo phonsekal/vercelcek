@@ -7,7 +7,7 @@ import os
 
 app = FastAPI(
     title="Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
-    version="2026.4"
+    version="2026.5"
 )
 
 app.add_middleware(
@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# GLOBAL DATABASE CACHE (Membuat pembacaan file CSV menjadi instan setelah cold start)
+# GLOBAL DATABASE CACHE (RAM)
 DB_CACHE = None
 
 def load_initial_data():
@@ -33,7 +33,6 @@ def load_initial_data():
     try:
         if not os.path.exists(csv_path):
             return None
-        # Membaca file dengan separator ';'
         df = pd.read_csv(csv_path, sep=';', dtype=str, on_bad_lines='skip', encoding='utf-8')
         df.columns = df.columns.str.strip()
         df = df.loc[:, ~df.columns.str.contains('^Unnamed:|^\s*$', case=False, na=True)]
@@ -43,11 +42,11 @@ def load_initial_data():
     except:
         return None
 
-# Panggil fungsi saat aplikasi pertama kali diinisialisasi
+# Inisialisasi data di awal
 load_initial_data()
 
 # ==========================================
-# 1. FRONTEND ANTARMUKA WEB
+# 1. FRONTEND ANTARMUKA WEB (HTML + JS AJAX)
 # ==========================================
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -95,7 +94,7 @@ def home():
                                 <th class="px-6 py-4">NUP</th>
                                 <th class="px-6 py-4">Judul Buku</th>
                                 <th class="px-6 py-4">Kodefikasi</th>
-                                <th class="px-6 py-4">Aksi</th>
+                                <th class="px-6 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="resultTableBody" class="divide-y divide-gray-200 text-sm text-gray-600">
@@ -106,21 +105,49 @@ def home():
         </div>
 
         <script>
-            // Catatan Integrasiotomatisasi Google Sheets:
-            // Karena Google Sheets API membutuhkan OAuth, cara termudah & aman langsung dari Frontend adalah 
-            // menembakkannya menggunakan Google Form Link pre-filled yang terhubung ke Sheet tersebut, atau memicu tautan pendaftaran.
-            function kirimKeGoogleSheets(nup, judul) {
-                // Konfigurasi target URL Google Sheets Anda
-                const targetSheetUrl = "https://docs.google.com/spreadsheets/d/1CtWwWaMNW8lhkAHsCUhSNHBZxGAWlTrqDABzRM4_wkk/edit?gid=0#gid=0";
-                
-                alert(`Mengirim data Buku:\\nNUP: ${nup}\\nJudul: ${judul}\\n\\nAnda akan diarahkan ke Google Sheets untuk mencatat.`);
-                
-                // Membuka Google Sheet secara langsung
-                window.open(targetSheetUrl, '_blank');
+            // URL Web App Google Apps Script Anda
+            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyVCt37xvsX_oiNsw-AX99RW2SC4gU0K0qOMJvcY0909zqGMC1J1eaUbZOMrRI1oOXh/exec";
+
+            // Fungsi Kirim Data Otomatis menggunakan Fetch API (Background Process)
+            async function eksekusiKirim(buttonElement, nup, judul) {
+                // Kunci tombol agar tidak diklik dua kali saat proses loading berlangsung
+                buttonElement.disabled = true;
+                buttonElement.innerText = "Mengirim...";
+                buttonElement.className = "px-3 py-1.5 bg-gray-400 text-white font-medium text-xs rounded shadow cursor-not-allowed";
+
+                const payload = { nup: nup, merk: judul };
+
+                try {
+                    // Mengirimkan request POST ke Google Apps Script Web App
+                    // Menggunakan mode 'no-cors' jika Google Apps Script tidak mengembalikan header CORS
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', 
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Karena menggunakan 'no-cors', status code tidak bisa dibaca langsung (opaque response), 
+                    // namun jika tidak melempar error catch, maka pengiriman dianggap berhasil.
+                    
+                    // Ubah tampilan tombol menjadi Centang Hijau secara permanen
+                    buttonElement.innerText = "✓ Berhasil";
+                    buttonElement.className = "px-3 py-1.5 bg-green-600 text-white font-medium text-xs rounded shadow cursor-default";
+                    
+                } catch (error) {
+                    console.error("Error Google Sheets:", error);
+                    // Kembalikan tombol ke kondisi semula agar bisa dicoba lagi jika gagal
+                    buttonElement.disabled = false;
+                    buttonElement.innerText = "❌ Gagal, Coba Lagi";
+                    buttonElement.className = "px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-medium text-xs rounded shadow transition";
+                }
             }
 
+            // Handler untuk form pencarian
             document.getElementById('searchForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
+                e.preventDefault(); // Mencegah reload halaman
                 
                 const queryInput = document.getElementById('query').value.trim();
                 const searchBtn = document.getElementById('searchBtn');
@@ -148,21 +175,21 @@ def home():
                         statusMessage.className = "mb-6 p-4 rounded-lg font-medium text-sm bg-green-50 text-green-700 block";
                         statusMessage.innerText = `🎉 Ditemukan ${result.total_results} data buku.`;
 
-                        result.data.forEach(item => {
+                        result.data.forEach((item, index) => {
                             const row = document.createElement('tr');
                             row.className = "hover:bg-gray-50 transition";
                             
-                            // Ambil parameter data yang aman untuk fungsi javascript string
-                            const safeNUP = (item.NUP || '-').replace(/'/g, "\\'");
-                            const safeJudul = (item['Judul Buku'] || '-').replace(/'/g, "\\'");
+                            // Amankan string kutip agar tidak merusak parameter fungsi HTML onClick
+                            const safeNUP = (item.NUP || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const safeJudul = (item['Judul Buku'] || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                             row.innerHTML = `
                                 <td class="px-6 py-4 font-mono font-medium text-gray-900">${item.NUP || '-'}</td>
                                 <td class="px-6 py-4">${item['Judul Buku'] || '-'}</td>
                                 <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${item.Kodefikasi || '-'}</span></td>
-                                <td class="px-6 py-4">
-                                    <button onclick="kirimKeGoogleSheets('${safeNUP}', '${safeJudul}')" 
-                                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded shadow transition">
+                                <td class="px-6 py-4 text-center">
+                                    <button onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" 
+                                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded shadow transition">
                                         🚀 Kirim Data
                                     </button>
                                 </td>
@@ -194,7 +221,6 @@ def home():
 # ==========================================
 @app.get("/search")
 def search_books(q: str = Query(..., description="Kata kunci pencarian")):
-    # Ambil data dari cache global RAM untuk mempercepat respons pencarian
     df = load_initial_data()
     if df is None:
         raise HTTPException(status_code=500, detail="Database file CSV gagal dimuat di server.")
@@ -203,12 +229,10 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
     if not query_clean:
         raise HTTPException(status_code=400, detail="Kata kunci tidak boleh kosong.")
     
-    # 1. Batasi target kolom pencarian murni pada: Merk, Kode1, Kode2, Kode3
     target_search_cols = [c for c in ['Merk', 'Kode1', 'Kode2', 'Kode3'] if c in df.columns]
     if not target_search_cols:
         raise HTTPException(status_code=500, detail="Kolom target pencarian tidak ditemukan di struktur CSV.")
         
-    # Jalankan pencarian vektor matriks super cepat khusus pada kolom target saja
     df_target = df[target_search_cols].astype(str).apply(lambda s: s.str.replace(" ", "", regex=False).str.replace(".", "", regex=False).str.lower())
     mask_match = df_target.apply(lambda s: s.str.contains(query_clean, na=False))
     rows_matched = mask_match.any(axis=1)
@@ -216,14 +240,11 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
     if rows_matched.any():
         hasil_filter = df[rows_matched].copy()
         
-        # 2. STANDARISASI KOLOM JUDUL BUKU (Dari Kolom 'Merk')
         hasil_filter['Judul Buku'] = hasil_filter['Merk'] if 'Merk' in hasil_filter.columns else "-"
         
-        # 3. STANDARISASI KOLOM NUP
         if 'NUP' not in hasil_filter.columns:
             hasil_filter['NUP'] = "-"
 
-        # 4. GABUNGKAN LOGIKA KODEFIKASI (Kode1, Kode2, Kode3 digabung dengan pemisah '/')
         def hitung_kodefikasi(row):
             parts = []
             for col in ['Kode1', 'Kode2', 'Kode3']:
@@ -233,7 +254,6 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
             
         hasil_filter['Kodefikasi'] = hasil_filter.apply(hitung_kodefikasi, axis=1)
 
-        # 5. PACKING STRUKTUR AKHIR (NUP, Judul Buku, Kodefikasi)
         df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi']].copy()
         
         return {
