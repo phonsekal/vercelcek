@@ -157,7 +157,7 @@ def home():
                                     <use xlink:href="#logo_svg__c" fill="url(#logo_svg__d)"></use>
                                 </svg>
                             </div>
-                            <div class="hidden h-6 text-2xl font-semibold sm:block text-gray-900 dark:text-gray-100">dedesaputra Blog</div>
+                            <div class="hidden h-6 text-2xl font-semibold sm:block text-gray-900 dark:text-gray-100">karsaPustaka</div>
                         </div>
                     </a>
                     <div class="flex items-center space-x-4 leading-5 sm:-mr-6 sm:space-x-6">
