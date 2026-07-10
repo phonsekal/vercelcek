@@ -164,6 +164,7 @@ def home():
                         <div class="no-scrollbar hidden max-w-40 items-center gap-x-4 overflow-x-auto sm:flex md:max-w-72 lg:max-w-96">
                             <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://blog.dedesaputra.com">Blog</a>
                             <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://blog.dedesaputra.com/about">About</a>
+                            <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://docs.google.com/spreadsheets/d/1CtWwWaMNW8lhkAHsCUhSNHBZxGAWlTrqDABzRM4_wkk/edit?gid=0#gid=0" target="_blank">Cek Buku</a>
                         </div>
                         <div class="flex items-center">
                             <div class="relative inline-block text-left">
