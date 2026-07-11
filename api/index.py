@@ -316,7 +316,7 @@ def home():
         </footer>
         
         <script>
-            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyVCt37xvsX_oiNsw-AX99RW2SC4gU0K0qOMJvcY0909zqGMC1J1eaUbZOMrRI1oOXh/exec";
+            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzXzOav80p4_wQcGsDiwYjC2Estv44Gm-WhQcj5XBmEF-H8Fmuo5FKOUnSYGwskIsDK/exec";
             let debounceTimer;
 
             // ==========================================
