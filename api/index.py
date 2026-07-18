@@ -7,7 +7,7 @@ import os
 
 app = FastAPI(
     title="KarsaPustaka — Sistem Inventarisasi Buku Perpustakaan Badan Bahasa 2026",
-    version="2026.11"
+    version="2026.12"
 )
 
 app.add_middleware(
@@ -53,9 +53,6 @@ async def favicon():
         return FileResponse(favicon_path)
     return HTTPException(status_code=404, detail="Favicon tidak ditemukan")
 
-# ========================================================
-# FRONTEND WITH FULL INTERACTIVE LIGHT/DARK THEME SWITCHER
-# ========================================================
 @app.get("/", response_class=HTMLResponse)
 def home():
     html_content = """
@@ -69,7 +66,6 @@ def home():
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
         <script src="https://cdn.tailwindcss.com"></script>
         <script>
-            // Mengaktifkan strategi class dark mode di Tailwind CSS
             tailwind.config = {
                 darkMode: 'class',
                 theme: {
@@ -85,11 +81,7 @@ def home():
             }
         </script>
         <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                 line-height: 1.6;
@@ -99,32 +91,15 @@ def home():
                 -webkit-font-smoothing: antialiased;
                 transition: background-color 0.2s, color 0.2s;
             }
-            
             ::-webkit-scrollbar { width: 5px; height: 5px; }
             ::-webkit-scrollbar-track { background: transparent; }
             ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
             .dark ::-webkit-scrollbar-thumb { background: #2d3748; }
-
-            .custom-nav-container {
-                max-width: 1100px;
-                margin: 0 auto;
-                width: 100%;
-                padding: 0 2rem;
-            }
-            
-            main {
-                flex: 1;
-                width: 100%;
-                max-width: 1100px;
-                margin: 0 auto;
-                padding: 2.5rem 2rem;
-            }
-            
+            .custom-nav-container { max-width: 1100px; margin: 0 auto; width: 100%; padding: 0 2rem; }
+            main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
             .hidden { display: none; }
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
             .animate-fade { animation: fadeIn 0.3s ease; }
-
             @media (max-width: 768px) {
                 .custom-nav-container { padding: 0 1rem; }
                 main { padding: 2rem 1rem; }
@@ -134,6 +109,7 @@ def home():
     </head>
     <body class="bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
         
+        <!-- STICKY HEADER -->
         <div class="sticky top-0 z-50 border-b border-gray-100 bg-white/90 dark:border-gray-900 dark:bg-gray-950/90 backdrop-blur-md w-full transition-colors">
             <div class="custom-nav-container">
                 <header class="flex items-center w-full justify-between py-10">
@@ -227,6 +203,7 @@ def home():
             </div>
         </main>
 
+        <!-- FOOTER -->
         <footer class="border-t border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 transition-colors">
             <div class="mt-16 flex flex-col items-center">
                 <div class="mb-3 flex space-x-4">
@@ -325,7 +302,6 @@ def home():
             const htmlElement = document.documentElement;
             const themeToggleBtn = document.getElementById('themeToggleBtn');
 
-            // Cek prefensi memori lokal agar tema tetap bertahan saat di-refresh
             if (localStorage.getItem('theme') === 'dark') {
                 htmlElement.className = 'dark';
             } else {
@@ -351,11 +327,10 @@ def home():
                         method: 'POST',
                         mode: 'no-cors', 
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nup: nup, merk: judul })
+                        body: JSON.stringify({ action: 'insert', nup: nup, merk: judul })
                     });
                     
                     buttonElement.innerText = "✓ Tersimpan";
-                    // Tombol berubah warna hijau sukses saat berhasil
                     buttonElement.className = "text-emerald-500 dark:text-emerald-400 font-bold text-xs pointer-events-none";
                 } catch (error) {
                     buttonElement.disabled = false;
@@ -390,20 +365,44 @@ def home():
                         statusText.innerText = `Menampilkan ${result.total_results} data buku.`;
                         
                         tableBody.innerHTML = "";
+                        
+                        // Kumpulkan semua NUP hasil pencarian untuk dicek serentak ke Google Sheet
+                        const nupList = result.data.map(item => item.NUP || '-');
+                        
+                        let registeredNUPs = [];
+                        try {
+                            // Hit web app untuk memeriksa NUP yang sudah ada di sheet
+                            const checkResponse = await fetch(WEB_APP_URL, {
+                                method: 'POST',
+                                mode: 'cors', // Pastikan script GS mengizinkan response balik JSON
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'check', nups: nupList })
+                            });
+                            const checkResult = await checkResponse.json();
+                            if(checkResult && checkResult.exists) {
+                                registeredNUPs = checkResult.exists; // Array berisi NUP yang sudah ada
+                            }
+                        } catch(e) {
+                            console.log("Pengecekan NUP dilewati karena konfigurasi CORS/GS belum diubah ke mode CORS.");
+                        }
+
                         result.data.forEach(item => {
                             const row = document.createElement('tr');
                             const safeNUP = (item.NUP || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                             const safeJudul = (item['Judul Buku'] || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            
+                            // Logika tombol default vs tombol duplikat (merah)
+                            let buttonHtml = `<button onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">Kirim Data</button>`;
+                            
+                            if (registeredNUPs.includes(item.NUP)) {
+                                buttonHtml = `<button disabled class="text-red-500 dark:text-red-400 font-bold text-xs cursor-not-allowed">Sudah pernah kirim</button>`;
+                            }
 
                             row.innerHTML = `
                                 <td class="font-mono-style py-4 px-4">${item.NUP || '-'}</td>
                                 <td class="py-4 px-4 font-medium text-gray-950 dark:text-gray-50">${item['Judul Buku'] || '-'}</td>
                                 <td class="py-4 px-4"><span class="text-xs text-gray-500 dark:text-gray-400">${item.Kodefikasi || '-'}</span></td>
-                                <td class="py-4 px-4 text-center">
-                                    <button onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">
-                                        Kirim Data
-                                    </button>
-                                </td>
+                                <td class="py-4 px-4 text-center">${buttonHtml}</td>
                             `;
                             tableBody.appendChild(row);
                         });
@@ -436,7 +435,7 @@ def home():
     return html_content
 
 # ==========================================
-# 3. BACKEND ENGINE (PENCARIAN UTUH)
+# BACKEND ENGINE
 # ==========================================
 @app.get("/search")
 def search_books(q: str = Query(..., description="Kata kunci pencarian")):
