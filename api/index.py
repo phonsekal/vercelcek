@@ -206,23 +206,6 @@ def home():
         <!-- FOOTER -->
         <footer class="border-t border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 transition-colors">
             <div class="mt-16 flex flex-col items-center">
-                <div class="mb-3 flex space-x-4">
-                    <a class="text-sm text-gray-500 transition hover:text-gray-600 dark:hover:text-gray-400" target="_blank" rel="noopener noreferrer" href="mailto:address@yoursite.com">
-                        <span class="sr-only">mail</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="hover:text-primary-500 dark:hover:text-primary-400 fill-current text-gray-700 dark:text-gray-200 h-6 w-6">
-                            <title>Mail</title>
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
-                        </svg>
-                    </a>
-                    <a class="text-sm text-gray-500 transition hover:text-gray-600 dark:hover:text-gray-400" target="_blank" rel="noopener noreferrer" href="https://github.com">
-                        <span class="sr-only">github</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="hover:text-primary-500 dark:hover:text-primary-400 fill-current text-gray-700 dark:text-gray-200 h-6 w-6">
-                            <title>GitHub</title>
-                            <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
-                        </svg>
-                    </a>
-                </div>
                 <div class="mb-2 flex space-x-2 text-sm text-gray-500 dark:text-gray-400">
                     <div>Dede Saputra</div>
                     <div> • </div>
@@ -234,7 +217,6 @@ def home():
         </footer>
         
         <script>
-            // PASTIKAN WEB_APP_URL SUDAH VERSI DEPLOY TERBARU ANDA
             const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxczAQx-0AVR0IZr6x8F4eXveeNVw0dz6FoUsKpppA63A1OFIVLQD4uHoTmXLbetDNx/exec";
             let debounceTimer;
 
@@ -266,7 +248,7 @@ def home():
                         method: 'POST',
                         mode: 'no-cors', 
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nup: nup, merk: judul })
+                        body: JSON.stringify({ action: 'insert', nup: nup, merk: judul })
                     });
                     
                     buttonElement.innerText = "✓ Tersimpan";
@@ -274,6 +256,36 @@ def home():
                 } catch (error) {
                     buttonElement.disabled = false;
                     buttonElement.innerText = "Gagal";
+                }
+            }
+
+            // ========================================================
+            // FUNGSI UTAMA LAZY-CHECK (JALAN DI LATAR BELAKANG)
+            // ========================================================
+            async function periksaDuplikatNUP(nupList) {
+                if (!nupList || nupList.length === 0) return;
+                
+                try {
+                    // Gunakan GET dengan URL Parameter agar responsif dan lolos blokir CORS
+                    const checkUrl = `${WEB_APP_URL}?nups=${encodeURIComponent(nupList.join(','))}`;
+                    const checkResponse = await fetch(checkUrl, { method: 'GET' });
+                    const checkResult = await checkResponse.json();
+                    
+                    if (checkResult && checkResult.status === "success" && checkResult.exists) {
+                        const registeredNUPs = checkResult.exists.map(n => String(n).trim());
+                        
+                        // Cari semua tombol di tabel dan tandai jika NUP ada di database sheet
+                        registeredNUPs.forEach(dupNup => {
+                            const btnElement = document.getElementById(`btn-${dupNup}`);
+                            if (btnElement) {
+                                btnElement.disabled = true;
+                                btnElement.innerText = "Sudah pernah kirim";
+                                btnElement.className = "text-red-500 dark:text-red-400 font-bold text-xs cursor-not-allowed";
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Gagal memverifikasi duplikasi data dari Google Sheets:", e);
                 }
             }
 
@@ -304,45 +316,35 @@ def home():
                         statusText.innerText = `Menampilkan ${result.total_results} data buku.`;
                         
                         tableBody.innerHTML = "";
-                        
-                        // Kumpulkan NUP untuk dicek via GET (Sangat Aman dari Blokir CORS)
-                        const nupList = result.data.map(item => (item.NUP || '-').trim());
-                        let registeredNUPs = [];
-                        
-                        try {
-                            // Menggunakan GET dengan parameter URL agar tembus CORS Google Script
-                            const checkUrl = `${WEB_APP_URL}?nups=${encodeURIComponent(nupList.join(','))}`;
-                            const checkResponse = await fetch(checkUrl, { method: 'GET' });
-                            const checkResult = await checkResponse.json();
-                            
-                            if (checkResult && checkResult.status === "success" && checkResult.exists) {
-                                registeredNUPs = checkResult.exists.map(n => String(n).trim());
-                            }
-                        } catch (e) {
-                            console.error("Gagal melakukan verifikasi NUP duplikat:", e);
-                        }
+                        const foundNups = [];
 
+                        // 1. Render tabel secepat mungkin secara lokal dari file BMN CSV
                         result.data.forEach(item => {
+                            const cleanNup = String(item.NUP || '-').trim();
+                            foundNups.push(cleanNup);
+
                             const row = document.createElement('tr');
-                            const safeNUP = (item.NUP || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const safeNUP = cleanNup.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                             const safeJudul = (item['Judul Buku'] || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            
-                            let buttonHtml = `<button onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">Kirim Data</button>`;
-                            
-                            // Jika NUP terdeteksi ada di database Google Sheet
-                            if (registeredNUPs.includes(String(item.NUP).trim())) {
-                                buttonHtml = `<button disabled class="text-red-500 dark:text-red-400 font-bold text-xs cursor-not-allowed">Sudah pernah kirim</button>`;
-                            }
 
                             row.innerHTML = `
                                 <td class="font-mono-style py-4 px-4">${item.NUP || '-'}</td>
                                 <td class="py-4 px-4 font-medium text-gray-950 dark:text-gray-50">${item['Judul Buku'] || '-'}</td>
                                 <td class="py-4 px-4"><span class="text-xs text-gray-500 dark:text-gray-400">${item.Kodefikasi || '-'}</span></td>
-                                <td class="py-4 px-4 text-center">${buttonHtml}</td>
+                                <td class="py-4 px-4 text-center">
+                                    <button id="btn-${safeNUP}" onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">
+                                        Kirim Data
+                                    </button>
+                                </td>
                             `;
                             tableBody.appendChild(row);
                         });
+                        
                         resultContainer.classList.remove('hidden');
+
+                        // 2. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
+                        periksaDuplikatNUP(foundNups);
+
                     } else {
                         statusDot.className = "w-1.5 h-1.5 bg-red-500 rounded-full error";
                         statusText.innerText = "Data tidak ditemukan.";
