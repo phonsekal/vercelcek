@@ -217,7 +217,7 @@ def home():
         </footer>
         
         <script>
-            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxczAQx-0AVR0IZr6x8F4eXveeNVw0dz6FoUsKpppA63A1OFIVLQD4uHoTmXLbetDNx/exec";
+            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzxOzlx2P-rptKHrpkT5B1ldxGvtWF38RLjs1c3CaC2BCPP9IgoBzKqph5zHfkFSQRM/exec";
             let debounceTimer;
 
             const htmlElement = document.documentElement;
