@@ -175,7 +175,7 @@ def home():
                         <label for="query" class="text-xs font-bold tracking-wider uppercase text-gray-900 dark:text-gray-100">PENCARIAN DATA</label>
                         <div class="input-wrapper flex gap-3">
                             <input type="text" id="query" name="query" autocomplete="off" required 
-                                placeholder="Ketik kata kunci untuk mencari buku..." 
+                                placeholder="Ketik kata kunci atau NUP untuk mencari buku..." 
                                 class="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-gray-900 dark:focus:border-gray-100 transition-colors">
                             <button type="submit" id="searchBtn" class="bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 px-6 py-2.5 font-semibold text-sm rounded-md hover:opacity-80 transition-opacity">Cari</button>
                         </div>
@@ -297,7 +297,9 @@ def home():
                 const resultContainer = document.getElementById('resultContainer');
                 const tableBody = document.getElementById('resultTableBody');
 
-                if (!queryInput || queryInput.length < 2) {
+                const isNumericQuery = /^\d+$/.test(queryInput);
+                // Pencarian teks minimal 2 huruf, tapi NUP bisa 1 digit angka
+                if (!queryInput || (queryInput.length < 2 && !isNumericQuery)) {
                     resultContainer.classList.add('hidden');
                     statusBadge.classList.add('hidden');
                     return;
@@ -385,7 +387,7 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
     if not query_clean:
         raise HTTPException(status_code=400, detail="Kata kunci tidak boleh kosong.")
     
-    target_search_cols = [c for c in ['Merk', 'Kode1', 'Kode2', 'Kode3'] if c in df.columns]
+    target_search_cols = [c for c in ['Merk', 'Kode1', 'Kode2', 'Kode3', 'NUP'] if c in df.columns]
     if not target_search_cols:
         raise HTTPException(status_code=500, detail="Kolom target pencarian tidak ditemukan di struktur CSV.")
         
@@ -395,6 +397,14 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
     
     if rows_matched.any():
         hasil_filter = df[rows_matched].copy()
+
+        # Jika kata kunci berupa angka, prioritaskan pencocokan NUP yang persis,
+        # supaya pencarian NUP tidak tertimbun hasil yang hanya "mengandung" angka tersebut.
+        if query_clean.isdigit() and 'NUP' in hasil_filter.columns:
+            nup_norm = hasil_filter['NUP'].astype(str).str.replace(" ", "", regex=False).str.replace(".", "", regex=False).str.lower()
+            exact_nup_mask = (nup_norm == query_clean)
+            if exact_nup_mask.any():
+                hasil_filter = hasil_filter[exact_nup_mask]
         
         hasil_filter['Judul Buku'] = hasil_filter['Merk'] if 'Merk' in hasil_filter.columns else "-"
         if 'NUP' not in hasil_filter.columns:
