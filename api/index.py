@@ -140,6 +140,7 @@ def home():
                         <div class="no-scrollbar hidden max-w-40 items-center gap-x-4 overflow-x-auto sm:flex md:max-w-72 lg:max-w-96">
                             <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://blog.dedesaputra.com">Blog</a>
                             <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://blog.dedesaputra.com/about">About</a>
+                            <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://puvionya.dedesaputra.com" target="_blank">Progress</a>
                             <a class="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100" href="https://docs.google.com/spreadsheets/d/1CtWwWaMNW8lhkAHsCUhSNHBZxGAWlTrqDABzRM4_wkk/edit?gid=0#gid=0" target="_blank">Cek Buku</a>
                         </div>
                         <div class="flex items-center">
@@ -181,6 +182,15 @@ def home():
                         </div>
                     </div>
                 </form>
+            </div>
+
+            <div id="sortBar" class="hidden items-center gap-2 mb-4 animate-fade">
+                <label for="sortSelect" class="text-xs font-bold tracking-wider uppercase text-gray-900 dark:text-gray-100">Urutkan:</label>
+                <select id="sortSelect" onchange="jalankanPencarian()" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-gray-900 dark:focus:border-gray-100 transition-colors cursor-pointer">
+                    <option value="nup">NUP</option>
+                    <option value="judul">Judul Buku</option>
+                    <option value="kodefikasi">Kodefikasi</option>
+                </select>
             </div>
 
             <div id="statusBadge" class="hidden text-xs text-gray-500 dark:text-gray-400 items-center gap-2 mb-6 animate-fade">
@@ -302,6 +312,8 @@ def home():
                 if (!queryInput || (queryInput.length < 2 && !isNumericQuery)) {
                     resultContainer.classList.add('hidden');
                     statusBadge.classList.add('hidden');
+                    document.getElementById('sortBar').classList.add('hidden');
+                    document.getElementById('sortBar').classList.remove('flex');
                     return;
                 }
 
@@ -310,7 +322,8 @@ def home():
                 statusText.innerText = "Mencari data...";
 
                 try {
-                    const response = await fetch(`/search?q=${encodeURIComponent(queryInput)}`);
+                    const sortValue = document.getElementById('sortSelect').value || 'nup';
+                    const response = await fetch(`/search?q=${encodeURIComponent(queryInput)}&sort=${sortValue}`);
                     const result = await response.json();
 
                     if (result.status === "success" && result.total_results > 0) {
@@ -343,6 +356,8 @@ def home():
                         });
                         
                         resultContainer.classList.remove('hidden');
+                    document.getElementById('sortBar').classList.remove('hidden');
+                    document.getElementById('sortBar').classList.add('flex');
 
                         // 2. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
                         periksaDuplikatNUP(foundNups);
@@ -351,10 +366,13 @@ def home():
                         statusDot.className = "w-1.5 h-1.5 bg-red-500 rounded-full error";
                         statusText.innerText = "Data tidak ditemukan.";
                         resultContainer.classList.add('hidden');
+                        document.getElementById('sortBar').classList.add('hidden');
                     }
                 } catch (error) {
                     statusDot.className = "w-1.5 h-1.5 bg-red-500 rounded-full error";
                     statusText.innerText = "Gagal mengambil data.";
+                    document.getElementById('sortBar').classList.add('hidden');
+                    document.getElementById('sortBar').classList.remove('flex');
                 }
             }
 
@@ -378,7 +396,7 @@ def home():
 # BACKEND ENGINE
 # ==========================================
 @app.get("/search")
-def search_books(q: str = Query(..., description="Kata kunci pencarian")):
+def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: str = Query("nup", description="Urutan: nup, judul, kodefikasi")):
     df = load_initial_data()
     if df is None:
         raise HTTPException(status_code=500, detail="Database file CSV gagal dimuat di server.")
@@ -419,6 +437,16 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian")):
             
         hasil_filter['Kodefikasi'] = hasil_filter.apply(hitung_kodefikasi, axis=1)
         df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi']].copy()
+        
+        # Sorting
+        sort_key = sort.lower().strip()
+        if sort_key == 'judul':
+            df_final = df_final.sort_values(by='Judul Buku', key=lambda s: s.str.lower(), na_position='last')
+        elif sort_key == 'kodefikasi':
+            df_final = df_final.sort_values(by='Kodefikasi', key=lambda s: s.str.lower(), na_position='last')
+        else:
+            # Default: NUP
+            df_final = df_final.sort_values(by='NUP', key=lambda s: pd.to_numeric(s, errors='coerce'), na_position='last')
         
         return {
             "status": "success",
