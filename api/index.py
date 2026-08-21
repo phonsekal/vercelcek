@@ -270,6 +270,27 @@ def home():
             }
 
             // ========================================================
+            // FUNGSI PEMBANTU: Escape untuk atribut HTML
+            // ========================================================
+            function escapeAttr(str) {
+                return String(str).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+            function escapeHtml(str) {
+                return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+
+            // ========================================================
+            // EVENT DELEGATION: Tangani klik "Kirim Data" via data-* attrs
+            // ========================================================
+            document.getElementById('resultTableBody').addEventListener('click', function(e) {
+                const btn = e.target.closest('.btn-kirim');
+                if (!btn || btn.disabled) return;
+                const nup = btn.getAttribute('data-nup');
+                const judul = btn.getAttribute('data-judul');
+                eksekusiKirim(btn, nup, judul);
+            });
+
+            // ========================================================
             // FUNGSI UTAMA LAZY-CHECK (JALAN DI LATAR BELAKANG)
             // ========================================================
             async function periksaDuplikatNUP(nupList) {
@@ -286,7 +307,7 @@ def home():
                         
                         // Cari semua tombol di tabel dan tandai jika NUP ada di database sheet
                         registeredNUPs.forEach(dupNup => {
-                            const btnElement = document.getElementById(`btn-${dupNup}`);
+                            const btnElement = document.querySelector(`.btn-kirim[data-nup="${CSS.escape(dupNup)}"]`);
                             if (btnElement) {
                                 btnElement.disabled = true;
                                 btnElement.innerText = "Sudah pernah kirim";
@@ -339,15 +360,14 @@ def home():
                             foundNups.push(cleanNup);
 
                             const row = document.createElement('tr');
-                            const safeNUP = cleanNup.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const safeJudul = (item['Judul Buku'] || '-').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const judul = item['Judul Buku'] || '-';
 
                             row.innerHTML = `
-                                <td class="font-mono-style py-4 px-4">${item.NUP || '-'}</td>
-                                <td class="py-4 px-4 font-medium text-gray-950 dark:text-gray-50">${item['Judul Buku'] || '-'}</td>
-                                <td class="py-4 px-4"><span class="text-xs text-gray-500 dark:text-gray-400">${item.Kodefikasi || '-'}</span></td>
+                                <td class="font-mono-style py-4 px-4">${escapeHtml(item.NUP || '-')}</td>
+                                <td class="py-4 px-4 font-medium text-gray-950 dark:text-gray-50">${escapeHtml(judul)}</td>
+                                <td class="py-4 px-4"><span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(item.Kodefikasi || '-')}</span></td>
                                 <td class="py-4 px-4 text-center">
-                                    <button id="btn-${safeNUP}" onclick="eksekusiKirim(this, '${safeNUP}', '${safeJudul}')" class="underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">
+                                    <button data-nup="${escapeAttr(cleanNup)}" data-judul="${escapeAttr(judul)}" class="btn-kirim underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">
                                         Kirim Data
                                     </button>
                                 </td>
