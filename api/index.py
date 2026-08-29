@@ -282,6 +282,40 @@ def home():
             }
 
             // ========================================================
+            // PENYIMPANAN STATUS "TIDAK DITEMUKAN" (localStorage)
+            // ========================================================
+            const STORAGE_KEY = 'karsapustaka_tidak_ditemukan';
+
+            function muatStatusTidakDitemukan() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    return data ? JSON.parse(data) : {};
+                } catch (e) {
+                    return {};
+                }
+            }
+
+            function simpanStatusTidakDitemukan(nup, checked) {
+                const data = muatStatusTidakDitemukan();
+                if (checked) {
+                    data[nup] = true;
+                } else {
+                    delete data[nup];
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            function pulihkanStatusTidakDitemukan() {
+                const data = muatStatusTidakDitemukan();
+                document.querySelectorAll('.cb-tidak-ditemukan').forEach(cb => {
+                    const nup = cb.getAttribute('data-nup');
+                    if (data[nup]) {
+                        cb.checked = true;
+                    }
+                });
+            }
+
+            // ========================================================
             // EVENT DELEGATION: Tangani klik "Kirim Data" via data-* attrs
             // ========================================================
             document.getElementById('resultTableBody').addEventListener('click', function(e) {
@@ -290,6 +324,14 @@ def home():
                 const nup = btn.getAttribute('data-nup');
                 const judul = btn.getAttribute('data-judul');
                 eksekusiKirim(btn, nup, judul);
+            });
+
+            // Event delegation untuk checkbox "Tidak Ditemukan" — simpan ke localStorage
+            document.getElementById('resultTableBody').addEventListener('change', function(e) {
+                if (e.target.classList.contains('cb-tidak-ditemukan')) {
+                    const nup = e.target.getAttribute('data-nup');
+                    simpanStatusTidakDitemukan(nup, e.target.checked);
+                }
             });
 
             // ========================================================
@@ -387,7 +429,10 @@ def home():
                     document.getElementById('sortBar').classList.remove('hidden');
                     document.getElementById('sortBar').classList.add('flex');
 
-                        // 2. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
+                        // 2. Pulihkan status checkbox "Tidak Ditemukan" dari localStorage
+                        pulihkanStatusTidakDitemukan();
+
+                        // 3. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
                         periksaDuplikatNUP(foundNups);
 
                     } else {
