@@ -282,37 +282,18 @@ def home():
             }
 
             // ========================================================
-            // PENYIMPANAN STATUS "TIDAK DITEMUKAN" (localStorage)
+            // PENYIMPANAN STATUS "TIDAK DITEMUKAN" (Server CSV)
             // ========================================================
-            const STORAGE_KEY = 'karsapustaka_tidak_ditemukan';
-
-            function muatStatusTidakDitemukan() {
+            async function kirimStatusTidakDitemukan(nup, checked) {
                 try {
-                    const data = localStorage.getItem(STORAGE_KEY);
-                    return data ? JSON.parse(data) : {};
+                    await fetch('/checkbox', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ items: [{ nup: nup, checked: checked }] })
+                    });
                 } catch (e) {
-                    return {};
+                    console.error('Gagal menyimpan status:', e);
                 }
-            }
-
-            function simpanStatusTidakDitemukan(nup, checked) {
-                const data = muatStatusTidakDitemukan();
-                if (checked) {
-                    data[nup] = true;
-                } else {
-                    delete data[nup];
-                }
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            }
-
-            function pulihkanStatusTidakDitemukan() {
-                const data = muatStatusTidakDitemukan();
-                document.querySelectorAll('.cb-tidak-ditemukan').forEach(cb => {
-                    const nup = cb.getAttribute('data-nup');
-                    if (data[nup]) {
-                        cb.checked = true;
-                    }
-                });
             }
 
             // ========================================================
@@ -326,11 +307,11 @@ def home():
                 eksekusiKirim(btn, nup, judul);
             });
 
-            // Event delegation untuk checkbox "Tidak Ditemukan" — simpan ke localStorage
+            // Event delegation untuk checkbox "Tidak Ditemukan" — simpan ke server
             document.getElementById('resultTableBody').addEventListener('change', function(e) {
                 if (e.target.classList.contains('cb-tidak-ditemukan')) {
                     const nup = e.target.getAttribute('data-nup');
-                    simpanStatusTidakDitemukan(nup, e.target.checked);
+                    kirimStatusTidakDitemukan(nup, e.target.checked);
                 }
             });
 
@@ -419,7 +400,7 @@ def home():
                                     </button>
                                 </td>
                                 <td class="py-4 px-4 text-center">
-                                    <input type="checkbox" class="cb-tidak-ditemukan w-4 h-4 cursor-pointer accent-red-500" data-nup="${escapeAttr(cleanNup)}">
+                                    <input type="checkbox" class="cb-tidak-ditemukan w-4 h-4 cursor-pointer accent-red-500" data-nup="${escapeAttr(cleanNup)}" ${item['Tidak Ditemukan'] === 'YA' ? 'checked' : ''}>
                                 </td>
                             `;
                             tableBody.appendChild(row);
@@ -429,10 +410,7 @@ def home():
                     document.getElementById('sortBar').classList.remove('hidden');
                     document.getElementById('sortBar').classList.add('flex');
 
-                        // 2. Pulihkan status checkbox "Tidak Ditemukan" dari localStorage
-                        pulihkanStatusTidakDitemukan();
-
-                        // 3. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
+                        // 2. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
                         periksaDuplikatNUP(foundNups);
 
                     } else {
@@ -509,7 +487,7 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: 
             return " / ".join(parts) if parts else "-"
             
         hasil_filter['Kodefikasi'] = hasil_filter.apply(hitung_kodefikasi, axis=1)
-        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi', 'Tahun Perolehan']].copy()
+        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi', 'Tahun Perolehan', 'Tidak Ditemukan']].copy()
         
         # Sorting
         sort_key = sort.lower().strip()
@@ -531,4 +509,54 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: 
         "status": "success",
         "total_results": 0,
         "data": []
+    }
+
+# ==========================================
+# ENDPOINT: UPDATE STATUS "TIDAK DITEMUKAN"
+# ==========================================
+from pydantic import BaseModel
+from typing import List
+
+class CheckboxUpdate(BaseModel):
+    nup: str
+    checked: bool
+
+class BulkCheckboxUpdate(BaseModel):
+    items: List[CheckboxUpdate]
+
+@app.post("/checkbox")
+def update_checkbox(updates: BulkCheckboxUpdate):
+    global DB_CACHE
+    csv_path = "databmnbuku.csv"
+    if not os.path.exists(csv_path):
+        csv_path = os.path.join(os.path.dirname(__file__), "..", "databmnbuku.csv")
+    if not os.path.exists(csv_path):
+        raise HTTPException(status_code=500, detail="File CSV tidak ditemukan.")
+
+    # Baca CSV dengan pandas
+    df = pd.read_csv(csv_path, sep=';', dtype=str, on_bad_lines='skip', encoding='utf-8')
+    df.columns = df.columns.str.strip()
+
+    # Pastikan kolom ada
+    if 'Tidak Ditemukan' not in df.columns:
+        df['Tidak Ditemukan'] = ''
+
+    updated_count = 0
+    for item in updates.items:
+        nup_str = str(item.nup).strip()
+        mask = df['NUP'].astype(str).str.strip() == nup_str
+        if mask.any():
+            df.loc[mask, 'Tidak Ditemukan'] = 'YA' if item.checked else ''
+            updated_count += mask.sum()
+
+    # Tulis kembali ke CSV
+    df.to_csv(csv_path, sep=';', index=False, encoding='utf-8')
+
+    # Refresh cache
+    DB_CACHE = None
+    load_initial_data()
+
+    return {
+        "status": "success",
+        "updated": updated_count
     }
