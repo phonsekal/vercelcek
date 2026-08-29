@@ -205,7 +205,9 @@ def home():
                             <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[15%]">NUP</th>
                             <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[55%]">Judul Buku</th>
                             <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[15%]">Kodefikasi</th>
+                            <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[10%] text-center">Tahun</th>
                             <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[15%] text-center">Aksi</th>
+                            <th class="text-xs font-bold uppercase text-gray-900 dark:text-gray-100 py-3 px-4 w-[10%] text-center">Tidak Ditemukan</th>
                         </tr>
                     </thead>
                     <tbody id="resultTableBody" class="divide-y divide-gray-100 dark:divide-gray-900"></tbody>
@@ -367,9 +369,15 @@ def home():
                                 <td class="py-4 px-4 font-medium text-gray-950 dark:text-gray-50">${escapeHtml(judul)}</td>
                                 <td class="py-4 px-4"><span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(item.Kodefikasi || '-')}</span></td>
                                 <td class="py-4 px-4 text-center">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(item['Tahun Perolehan'] || '-')}</span>
+                                </td>
+                                <td class="py-4 px-4 text-center">
                                     <button data-nup="${escapeAttr(cleanNup)}" data-judul="${escapeAttr(judul)}" class="btn-kirim underline text-xs font-semibold text-gray-900 dark:text-gray-100 hover:opacity-60 transition-opacity">
                                         Kirim Data
                                     </button>
+                                </td>
+                                <td class="py-4 px-4 text-center">
+                                    <input type="checkbox" class="cb-tidak-ditemukan w-4 h-4 cursor-pointer accent-red-500" data-nup="${escapeAttr(cleanNup)}">
                                 </td>
                             `;
                             tableBody.appendChild(row);
@@ -456,7 +464,7 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: 
             return " / ".join(parts) if parts else "-"
             
         hasil_filter['Kodefikasi'] = hasil_filter.apply(hitung_kodefikasi, axis=1)
-        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi']].copy()
+        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi', 'Tahun Perolehan']].copy()
         
         # Sorting
         sort_key = sort.lower().strip()
