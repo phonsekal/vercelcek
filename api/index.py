@@ -282,17 +282,38 @@ def home():
             }
 
             // ========================================================
-            // PENYIMPANAN STATUS "TIDAK DITEMUKAN" (Server CSV)
+            // PENYIMPANAN STATUS "TIDAK DITEMUKAN" (Google Sheets via Apps Script)
             // ========================================================
             async function kirimStatusTidakDitemukan(nup, checked) {
                 try {
-                    await fetch('/checkbox', {
+                    await fetch(WEB_APP_URL, {
                         method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ items: [{ nup: nup, checked: checked }] })
+                        body: JSON.stringify({ action: 'checkbox', nup: nup, checked: checked })
                     });
                 } catch (e) {
-                    console.error('Gagal menyimpan status:', e);
+                    console.error('Gagal menyimpan status tidak ditemukan:', e);
+                }
+            }
+
+            async function periksaStatusTidakDitemukan(nupList) {
+                if (!nupList || nupList.length === 0) return;
+                try {
+                    const url = `${WEB_APP_URL}?checkbox_nups=${encodeURIComponent(nupList.join(','))}`;
+                    const resp = await fetch(url, { method: 'GET' });
+                    const result = await resp.json();
+                    if (result && result.status === 'success' && result.checked_nups) {
+                        const checkedSet = new Set(result.checked_nups.map(n => String(n).trim()));
+                        document.querySelectorAll('.cb-tidak-ditemukan').forEach(cb => {
+                            const nup = cb.getAttribute('data-nup');
+                            if (checkedSet.has(nup)) {
+                                cb.checked = true;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Gagal memeriksa status tidak ditemukan:', e);
                 }
             }
 
@@ -400,7 +421,7 @@ def home():
                                     </button>
                                 </td>
                                 <td class="py-4 px-4 text-center">
-                                    <input type="checkbox" class="cb-tidak-ditemukan w-4 h-4 cursor-pointer accent-red-500" data-nup="${escapeAttr(cleanNup)}" ${item['Tidak Ditemukan'] === 'YA' ? 'checked' : ''}>
+                                    <input type="checkbox" class="cb-tidak-ditemukan w-4 h-4 cursor-pointer accent-red-500" data-nup="${escapeAttr(cleanNup)}">
                                 </td>
                             `;
                             tableBody.appendChild(row);
@@ -410,7 +431,8 @@ def home():
                     document.getElementById('sortBar').classList.remove('hidden');
                     document.getElementById('sortBar').classList.add('flex');
 
-                        // 2. Jalankan pengecekan duplikasi ke Google Sheet di latar belakang secara Asinkron
+                        // 2. Cek status Tidak Ditemukan & duplikasi di latar belakang
+                        periksaStatusTidakDitemukan(foundNups);
                         periksaDuplikatNUP(foundNups);
 
                     } else {
@@ -487,7 +509,7 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: 
             return " / ".join(parts) if parts else "-"
             
         hasil_filter['Kodefikasi'] = hasil_filter.apply(hitung_kodefikasi, axis=1)
-        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi', 'Tahun Perolehan', 'Tidak Ditemukan']].copy()
+        df_final = hasil_filter[['NUP', 'Judul Buku', 'Kodefikasi', 'Tahun Perolehan']].copy()
         
         # Sorting
         sort_key = sort.lower().strip()
@@ -511,52 +533,3 @@ def search_books(q: str = Query(..., description="Kata kunci pencarian"), sort: 
         "data": []
     }
 
-# ==========================================
-# ENDPOINT: UPDATE STATUS "TIDAK DITEMUKAN"
-# ==========================================
-from pydantic import BaseModel
-from typing import List
-
-class CheckboxUpdate(BaseModel):
-    nup: str
-    checked: bool
-
-class BulkCheckboxUpdate(BaseModel):
-    items: List[CheckboxUpdate]
-
-@app.post("/checkbox")
-def update_checkbox(updates: BulkCheckboxUpdate):
-    global DB_CACHE
-    csv_path = "databmnbuku.csv"
-    if not os.path.exists(csv_path):
-        csv_path = os.path.join(os.path.dirname(__file__), "..", "databmnbuku.csv")
-    if not os.path.exists(csv_path):
-        raise HTTPException(status_code=500, detail="File CSV tidak ditemukan.")
-
-    # Baca CSV dengan pandas
-    df = pd.read_csv(csv_path, sep=';', dtype=str, on_bad_lines='skip', encoding='utf-8')
-    df.columns = df.columns.str.strip()
-
-    # Pastikan kolom ada
-    if 'Tidak Ditemukan' not in df.columns:
-        df['Tidak Ditemukan'] = ''
-
-    updated_count = 0
-    for item in updates.items:
-        nup_str = str(item.nup).strip()
-        mask = df['NUP'].astype(str).str.strip() == nup_str
-        if mask.any():
-            df.loc[mask, 'Tidak Ditemukan'] = 'YA' if item.checked else ''
-            updated_count += mask.sum()
-
-    # Tulis kembali ke CSV
-    df.to_csv(csv_path, sep=';', index=False, encoding='utf-8')
-
-    # Refresh cache
-    DB_CACHE = None
-    load_initial_data()
-
-    return {
-        "status": "success",
-        "updated": updated_count
-    }
